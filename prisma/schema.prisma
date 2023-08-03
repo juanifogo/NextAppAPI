@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model transporte {
@@ -16,9 +17,26 @@ model transporte {
   tag         String @unique @db.VarChar(255)
 }
 
-model users {
-  id         Int     @id @default(autoincrement())
-  email      String  @db.VarChar(255)
-  first_name String? @db.VarChar(255)
-  last_name  String? @db.VarChar(255)
+model Camiones {
+  id        String     @id @unique(map: "id") @default(uuid())
+  tag       String     @unique @db.VarChar(255)
+  patente   String     @unique @db.VarChar(255)
+  modelo    String     @db.VarChar(255)
+  capacidad Float      @db.Float
+  compania  String     @db.VarChar(255)
+  sensores  Sensores[]
+}
+
+model Sensores {
+  id             Int      @id @unique(map: "id") @default(autoincrement())
+  temperatura    Float    @db.Float
+  humedad        Float    @db.Float
+  latitud        Float    @db.Float
+  longitud       Float    @db.Float
+  tiempoMedicion DateTime @db.Timestamp()
+  tiempoDB       DateTime @default(now())
+  idCamion       String
+  Camion         Camiones @relation(fields: [idCamion], references: [tag])
+
+  @@index([idCamion])
 }
