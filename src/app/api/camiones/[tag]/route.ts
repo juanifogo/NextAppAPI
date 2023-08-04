@@ -23,7 +23,7 @@ const checkTag = async (tag: string) => {
   }
 }
 
-type camionPaylaod = {
+type camionPayload = {
   tag: string,
   patente: string,
   modelo: string,
@@ -36,21 +36,16 @@ type Props = {
     tag: string
   }
 }
+const isValidCamion = (obj: any): obj is camionPayload => {
+  if (
+    (typeof obj.tag !== 'string')
+  ) {
+    return false
+  }
+  return true
+}
 
 export async function GET(req: Request, { params: { tag } }: Props) {
-  let res = await checkTag(tag)
-  switch (res) {
-    case "Error":
-      return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
-
-    case "Not Found":
-      let output = "No se encontro un camion con el tag correspondiente"
-      console.log(output)
-      return NextResponse.json({ mensaje: output }, { status: 404 })
-
-    default:
-      break
-  }
   try {
     const result = await prisma.camiones.findFirst({
       where: {
@@ -71,11 +66,13 @@ export async function GET(req: Request, { params: { tag } }: Props) {
 }
 
 export async function PUT(req: Request, { params: { tag } }: Props) {
-  const payload: camionPaylaod = await req.json()
-  if ([tag, payload.patente,
+  const payload: camionPayload = await req.json()
+  if ([
+    payload.patente,
     payload.modelo,
     payload.capacidad,
-    payload.compania].some(chkUndef)) {
+    payload.compania
+  ].some(chkUndef)) {
     let output = 'No puede haber campos vacios'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })

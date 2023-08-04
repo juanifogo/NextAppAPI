@@ -1,5 +1,6 @@
 import { prisma } from '@/db'
 import { NextRequest, NextResponse } from 'next/server'
+import moment from 'moment'
 
 const chkUndef = (element: any) => typeof (element) === 'undefined'
 
@@ -14,8 +15,9 @@ type sensoresPayload = {
   humedad: number,
   latitud: number,
   longitud: number,
-  tiempoMedicion: Date
+  tiempoMedicion: string
 }
+
 const checkTag = async (tag: any) => {
   try {
     const result = await prisma.camiones.findFirst({
@@ -37,22 +39,23 @@ const checkTag = async (tag: any) => {
   }
 }
 
-export async function GET(req: NextRequest, { params: { tag } }: Props) {
-  //const tag = req.url.split('/').at(-2)
-  let exists = await checkTag(tag)
-  switch (exists) {
-    case "Error":
-      return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+const isValidISO8601 = (input: any): boolean => {
+  return moment(input, moment.ISO_8601, true).isValid()
+}
 
-    case "Not Found":
-      let output = "No se encontro un camion con el tag correspondiente"
-      console.log(output)
-      return NextResponse.json({ mensaje: output }, { status: 404 })
-
-    default:
-      break
+const isValidSensor = (obj: any): obj is sensoresPayload => {
+  if (
+    (typeof (obj.humedad) !== 'number') ||
+    (typeof (obj.temperatura) !== 'number') ||
+    (typeof (obj.latitud) !== 'number') ||
+    (typeof (obj.longitud) !== 'number') ||
+    (!isValidISO8601(obj.tiempoMedicion))
+  ) {
+    return false
   }
-
+  return true
+}
+export async function GET(req: NextRequest, { params: { tag } }: Props) {
   try {
     const result = await prisma.sensores.findMany({
       where: {
@@ -75,17 +78,6 @@ export async function GET(req: NextRequest, { params: { tag } }: Props) {
 }
 
 export async function POST(req: Request, { params: { tag } }: Props) {
-  const payload: sensoresPayload = await req.json()
-  if ([payload.humedad,
-  payload.temperatura,
-  payload.latitud,
-  payload.longitud,
-  payload.tiempoMedicion].some(chkUndef)) {
-    let output = 'No puede haber campos vacios'
-    console.log(output)
-    return NextResponse.json({ mensaje: output }, { status: 400 })
-  }
-
   let exists = await checkTag(tag)
   switch (exists) {
     case "Error":
@@ -98,6 +90,37 @@ export async function POST(req: Request, { params: { tag } }: Props) {
 
     default:
       break
+  }
+
+  const payload: sensoresPayload = await req.json()
+
+  if ([
+    payload.temperatura,
+    payload.humedad,
+    payload.latitud,
+    payload.longitud,
+    payload.tiempoMedicion
+  ].some(chkUndef)) {
+    let output = 'No puede haber campos vacios'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }
+
+  payload.tiempoMedicion = payload.tiempoMedicion.trim()
+  if (payload.tiempoMedicion.length === 0) {
+    let output = 'No puede haber campos vacios'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }
+  if (!isValidSensor(payload)) {
+    let output = 'Formato incorrecto'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }
+  if (new Date(Date.now()) < new Date(payload.tiempoMedicion)) {
+    let output = "Fecha invalida"
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
   }
   try {
     let result = await prisma.sensores.create({
