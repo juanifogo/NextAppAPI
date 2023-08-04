@@ -32,10 +32,7 @@ export async function POST(req: Request, { params: { tag }}: Props){
       console.log(output)
       return NextResponse.json({mensaje: output}, {status: 404})
     }
-
-    else{
-      id = result.id
-    }
+    id = result.id
   }
 
   catch(err){
