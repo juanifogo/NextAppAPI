@@ -1,8 +1,6 @@
 import { prisma } from '@/db'
 import { NextResponse } from 'next/server'
 
-const chkUndef = (element: any) => typeof (element) === 'undefined'
-
 const checkTag = async (tag: string) => {
   try {
     const result = await prisma.camiones.findFirst({
@@ -36,9 +34,18 @@ type Props = {
     tag: string
   }
 }
+
+const isValidPatente = (input: any): boolean => {
+  const regex = /^[A-Z]{3}-[0-9]{3}$/
+  return regex.test(input)
+}
 const isValidCamion = (obj: any): obj is camionPayload => {
   if (
-    (typeof obj.tag !== 'string')
+    (typeof obj.tag !== 'string') ||
+    (typeof obj.modelo !== 'string') ||
+    (typeof obj.capacidad !== 'number') ||
+    (typeof obj.compania !== 'string') ||
+    (typeof obj.patente !== 'string')
   ) {
     return false
   }
@@ -66,18 +73,6 @@ export async function GET(req: Request, { params: { tag } }: Props) {
 }
 
 export async function PUT(req: Request, { params: { tag } }: Props) {
-  const payload: camionPayload = await req.json()
-  if ([
-    payload.patente,
-    payload.modelo,
-    payload.capacidad,
-    payload.compania
-  ].some(chkUndef)) {
-    let output = 'No puede haber campos vacios'
-    console.log(output)
-    return NextResponse.json({ mensaje: output }, { status: 400 })
-  }
-
   let id: string
 
   let res = await checkTag(tag)
@@ -94,12 +89,37 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
       id = res
       break
   }
+
+  const payload: camionPayload = await req.json()
+  if (!isValidCamion(payload)) {
+    let output = 'Formato incorrecto'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }
+
+  payload.tag = payload.tag.trim()
+  payload.patente = payload.patente.trim()
+  payload.modelo = payload.modelo.trim()
+  payload.compania = payload.compania.trim()
+
+  if([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')){
+    let output = 'Formato incorrecto'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }      
+  if(!isValidPatente(payload.patente)){
+    let output = 'Patente ivalida'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }
+
   try {
-    await prisma.camiones.updateMany({
+    await prisma.camiones.update({
       where: {
         tag: tag
       },
       data: {
+        tag: payload.tag,
         patente: payload.patente,
         modelo: payload.modelo,
         capacidad: payload.capacidad,

@@ -8,15 +8,6 @@ datasource db {
   relationMode = "prisma"
 }
 
-model transporte {
-  id          Int    @id @unique(map: "id") @default(autoincrement())
-  humedad     Float  @db.Float
-  temperatura Float  @db.Float
-  x_pos       Int    @map("x-pos") @db.SmallInt
-  y_pos       Int    @map("y-pos") @db.SmallInt
-  tag         String @unique @db.VarChar(255)
-}
-
 model Camiones {
   id        String     @id @unique(map: "id") @default(uuid())
   tag       String     @unique @db.VarChar(255)
@@ -36,7 +27,8 @@ model Sensores {
   tiempoMedicion DateTime @db.Timestamp()
   tiempoDB       DateTime @default(now())
   idCamion       String
-  Camion         Camiones @relation(fields: [idCamion], references: [tag])
+  Camion         Camiones @relation(fields: [idCamion], references: [tag], onUpdate: Cascade, onDelete: Cascade)
 
+  @@unique([idCamion, tiempoMedicion])
   @@index([idCamion])
 }

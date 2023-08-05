@@ -1,14 +1,29 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db'
 
-const chkUndef = (element: any) => typeof (element) === 'undefined'
-
-type camionPaylaod = {
+type camionPayload = {
   tag: string,
   patente: string,
   modelo: string,
   capacidad: number,
   compania: string
+}
+
+const isValidPatente = (input: any): boolean => {
+  const regex = /^[A-Z]{3}-[0-9]{3}$/
+  return regex.test(input)
+}
+const isValidCamion = (obj: any): obj is camionPayload => {
+  if (
+    (typeof obj.tag !== 'string') ||
+    (typeof obj.modelo !== 'string') ||
+    (typeof obj.capacidad !== 'number') ||
+    (typeof obj.compania !== 'string') ||
+    (typeof obj.patente !== 'string')
+  ) {
+    return false
+  }
+  return true
 }
 
 export async function GET() {
@@ -24,26 +39,48 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const payload: camionPaylaod = await req.json()
+  const payload: camionPayload = await req.json()
 
-  if ([payload.tag,
-  payload.patente,
-  payload.modelo,
-  payload.capacidad,
-  payload.compania].some(chkUndef)) {
-    let output = 'No puede haber campos vacios'
+  if (!isValidCamion(payload)) {
+    let output = 'Formato incorrecto'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }
+
+  payload.tag = payload.tag.trim()
+  payload.patente = payload.patente.trim()
+  payload.modelo = payload.modelo.trim()
+  payload.compania = payload.compania.trim()
+
+  if([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')){
+    let output = 'Formato incorrecto'
+    console.log(output)
+    return NextResponse.json({ mensaje: output }, { status: 400 })
+  }
+  if(!isValidPatente(payload.patente)){
+    let output = 'Patente ivalida'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
   try {
     const result = await prisma.camiones.findFirst({
       where: {
-        tag: payload.tag
+        OR: 
+        [
+          {tag: payload.tag},
+          {patente: payload.patente}
+        ]
+        
       }
     })
 
-    if (result) {
+    if (result?.tag === payload.tag) {
       let output = 'Ya existe una columna con el tag correspondiente'
+      console.log(output)
+      return NextResponse.json({ mensaje: output }, { status: 400 })
+    }
+    if(result?.patente === payload.patente){
+      let output = 'Ya existe una columna con la patente correspondiente'
       console.log(output)
       return NextResponse.json({ mensaje: output }, { status: 400 })
     }
