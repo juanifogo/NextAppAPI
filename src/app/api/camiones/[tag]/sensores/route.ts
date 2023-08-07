@@ -1,85 +1,11 @@
 import { prisma } from '@/db'
 import { NextRequest, NextResponse } from 'next/server'
-import moment from 'moment'
+import { sensoresPayload } from '@/types'
+import { checkTag } from '@/utils'
+import { checkDuplicateDate } from '@/utils'
+import { isValidSensor } from '@/utils'
+import { Props } from '@/types'
 
-type Props = {
-  params: {
-    tag: string
-  }
-}
-
-type sensoresPayload = {
-  temperatura: number,
-  humedad: number,
-  latitud: number,
-  longitud: number,
-  tiempoMedicion: string
-}
-
-const checkTag = async (tag: any) => {
-  try {
-    const result = await prisma.camiones.findUnique({
-      where: {
-        tag: tag
-      }
-    })
-
-    if (!result) {
-      return "Not Found"
-    }
-    else {
-      return result.id
-    }
-  }
-  catch (err) {
-    console.log(err)
-    return "Error"
-  }
-}
-
-const checkDuplicateDate = async (tag: string, tiempoMedicion: string) => {
-  try {
-    const result = await prisma.sensores.findFirst({
-      where: {
-        AND: [
-          {
-            idCamion: tag
-          },
-          {
-            tiempoMedicion: tiempoMedicion
-          }
-        ]
-      }
-    })
-    if (!result) {
-      return false
-    }
-    else {
-      return true
-    }
-  }
-  catch(err){
-    console.log(err)
-    return "Error"
-  }
-}
-const isValidISO8601 = (input: string): boolean => {
-  return moment(input.trim(), moment.ISO_8601, true).isValid()
-}
-
-const isValidSensor = (obj: any): obj is sensoresPayload => {
-  if (
-    (typeof obj.humedad !== 'number') ||
-    (typeof obj.temperatura !== 'number') ||
-    (typeof obj.latitud !== 'number') ||
-    (typeof obj.longitud !== 'number') ||
-    (typeof obj.tiempoMedicion !== 'string') ||
-    (!isValidISO8601(obj.tiempoMedicion))
-  ) {
-    return false
-  }
-  return true
-}
 export async function GET(req: NextRequest, { params: { tag } }: Props) {
   let exists = await checkTag(tag)
   switch (exists) {
@@ -117,7 +43,6 @@ export async function GET(req: NextRequest, { params: { tag } }: Props) {
 }
 
 export async function POST(req: Request, { params: { tag } }: Props) {
-  tag = tag.trim()
   let exists = await checkTag(tag)
   switch (exists) {
     case "Error":

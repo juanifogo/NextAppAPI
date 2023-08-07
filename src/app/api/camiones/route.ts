@@ -1,30 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db'
-
-type camionPayload = {
-  tag: string,
-  patente: string,
-  modelo: string,
-  capacidad: number,
-  compania: string
-}
-
-const isValidPatente = (input: any): boolean => {
-  const regex = /^[A-Z]{3}-[0-9]{3}$/
-  return regex.test(input)
-}
-const isValidCamion = (obj: any): obj is camionPayload => {
-  if (
-    (typeof obj.tag !== 'string') ||
-    (typeof obj.modelo !== 'string') ||
-    (typeof obj.capacidad !== 'number') ||
-    (typeof obj.compania !== 'string') ||
-    (typeof obj.patente !== 'string')
-  ) {
-    return false
-  }
-  return true
-}
+import { camionPayload } from '@/types'
+import { isValidPatente } from '@/utils'
+import { isValidCamion } from '@/utils'
 
 export async function GET() {
   try {
