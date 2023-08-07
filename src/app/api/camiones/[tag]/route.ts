@@ -1,60 +1,14 @@
 import { prisma } from '@/db'
 import { NextResponse } from 'next/server'
-
-const checkTag = async (tag: string) => {
-  try {
-    const result = await prisma.camiones.findFirst({
-      where: {
-        tag: tag
-      }
-    })
-
-    if (!result) {
-      return "Not Found"
-    }
-    else {
-      return result.id
-    }
-  }
-  catch (err) {
-    return "Error"
-  }
-}
-
-type camionPayload = {
-  tag: string,
-  patente: string,
-  modelo: string,
-  capacidad: number,
-  compania: string
-}
-
-type Props = {
-  params: {
-    tag: string
-  }
-}
-
-const isValidPatente = (input: any): boolean => {
-  const regex = /^[A-Z]{3}-[0-9]{3}$/
-  return regex.test(input)
-}
-const isValidCamion = (obj: any): obj is camionPayload => {
-  if (
-    (typeof obj.tag !== 'string') ||
-    (typeof obj.modelo !== 'string') ||
-    (typeof obj.capacidad !== 'number') ||
-    (typeof obj.compania !== 'string') ||
-    (typeof obj.patente !== 'string')
-  ) {
-    return false
-  }
-  return true
-}
+import { checkTag } from '@/utils'
+import { camionPayload } from '@/types'
+import { isValidPatente } from '@/utils'
+import { isValidCamion } from '@/utils'
+import { Props } from '@/types'
 
 export async function GET(req: Request, { params: { tag } }: Props) {
   try {
-    const result = await prisma.camiones.findFirst({
+    const result = await prisma.camiones.findUnique({
       where: {
         tag: tag
       }
