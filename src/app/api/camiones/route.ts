@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
 
-  payload.tag = payload.tag.trim()
+  payload.tag = payload.tag.trim().toLowerCase()
   payload.patente = payload.patente.trim()
   payload.modelo = payload.modelo.trim()
   payload.compania = payload.compania.trim()
