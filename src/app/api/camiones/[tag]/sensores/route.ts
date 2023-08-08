@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, { params: { tag } }: Props) {
   }
   catch (err) {
     console.log(err)
-    return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+    return NextResponse.json({ mensaje: err }, { status: 500 })
   }
 }
 
@@ -72,7 +72,7 @@ export async function POST(req: Request, { params: { tag } }: Props) {
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
-  if(await checkDuplicateDate(tag, payload.tiempoMedicion)){
+  if (await checkDuplicateDate(tag, payload.tiempoMedicion)) {
     let output = "Este camion ya tiene una medicion con esa fecha"
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
@@ -94,6 +94,6 @@ export async function POST(req: Request, { params: { tag } }: Props) {
   }
   catch (err) {
     console.log(err)
-    return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+    return NextResponse.json({ mensaje: err }, { status: 500 })
   }
 }

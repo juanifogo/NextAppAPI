@@ -19,15 +19,15 @@ model Camiones {
 }
 
 model Sensores {
-  id             Int      @id @unique(map: "id") @default(autoincrement())
-  temperatura    Float    @db.Float
-  humedad        Float    @db.Float
-  latitud        Float    @db.Float
-  longitud       Float    @db.Float
-  tiempoMedicion DateTime @db.Timestamp()
-  tiempoDB       DateTime @default(now())
-  idCamion       String
-  Camion         Camiones @relation(fields: [idCamion], references: [tag], onUpdate: Cascade, onDelete: Cascade)
+  id             Int       @id @unique(map: "id") @default(autoincrement())
+  temperatura    Float     @db.Float
+  humedad        Float     @db.Float
+  latitud        Float     @db.Float
+  longitud       Float     @db.Float
+  tiempoMedicion DateTime  @db.Timestamp()
+  tiempoDB       DateTime  @default(now())
+  idCamion       String?
+  Camion         Camiones? @relation(fields: [idCamion], references: [tag], onUpdate: Cascade, onDelete: Cascade)
 
   @@unique([idCamion, tiempoMedicion])
   @@index([idCamion])

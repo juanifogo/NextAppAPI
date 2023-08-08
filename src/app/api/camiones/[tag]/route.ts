@@ -1,5 +1,5 @@
 import { prisma } from '@/db'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { checkTag } from '@/utils'
 import { camionPayload } from '@/types'
 import { isValidPatente } from '@/utils'
@@ -22,7 +22,8 @@ export async function GET(req: Request, { params: { tag } }: Props) {
     return NextResponse.json({ mensaje: output }, { status: 404 })
   }
   catch (err) {
-    return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+    console.log(err)
+    return NextResponse.json({ mensaje: err }, { status: 500 })
   }
 }
 
@@ -56,12 +57,12 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
   payload.modelo = payload.modelo.trim()
   payload.compania = payload.compania.trim()
 
-  if([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')){
+  if ([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')) {
     let output = 'Formato incorrecto'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
-  }      
-  if(!isValidPatente(payload.patente)){
+  }
+  if (!isValidPatente(payload.patente)) {
     let output = 'Patente ivalida'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
@@ -86,6 +87,40 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
   }
 
   catch (err) {
-    return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+    console.log(err)
+    return NextResponse.json({ mensaje: err }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest, { params: { tag } }: Props) {
+  let id: string
+  let res = await checkTag(tag)
+  switch (res) {
+    case "Error":
+      return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+
+    case "Not Found":
+      let output = "No se encontro un camion con el tag correspondiente"
+      console.log(output)
+      return NextResponse.json({ mensaje: output }, { status: 404 })
+
+    default:
+      id = res
+      break
+  }
+  try {
+    const result = await prisma.camiones.delete({
+      where: {
+        tag: tag
+      }
+    })
+    let output = `Recurso borrado con ID: ${id}`
+    console.log(output)
+    console.log(result)
+    return NextResponse.json({ mensaje: output }, { status: 200 })
+  }
+  catch (err) {
+    console.log(err)
+    return NextResponse.json({ mensaje: err }, { status: 500 })
   }
 }

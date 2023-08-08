@@ -12,6 +12,7 @@ export async function GET() {
     return NextResponse.json(result, { status: 200 })
   }
   catch (err) {
+    console.log(err)
     return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
   }
 }
@@ -30,12 +31,12 @@ export async function POST(req: Request) {
   payload.modelo = payload.modelo.trim()
   payload.compania = payload.compania.trim()
 
-  if([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')){
+  if ([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')) {
     let output = 'Formato incorrecto'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
-  if(!isValidPatente(payload.patente)){
+  if (!isValidPatente(payload.patente)) {
     let output = 'Patente ivalida'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
@@ -43,12 +44,12 @@ export async function POST(req: Request) {
   try {
     const result = await prisma.camiones.findFirst({
       where: {
-        OR: 
-        [
-          {tag: payload.tag},
-          {patente: payload.patente}
-        ]
-        
+        OR:
+          [
+            { tag: payload.tag },
+            { patente: payload.patente }
+          ]
+
       }
     })
 
@@ -57,13 +58,14 @@ export async function POST(req: Request) {
       console.log(output)
       return NextResponse.json({ mensaje: output }, { status: 400 })
     }
-    if(result?.patente === payload.patente){
+    if (result?.patente === payload.patente) {
       let output = 'Ya existe una columna con la patente correspondiente'
       console.log(output)
       return NextResponse.json({ mensaje: output }, { status: 400 })
     }
   }
   catch (err) {
+    console.log(err)
     return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
   }
 
@@ -83,6 +85,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ mensaje: output }, { status: 201 })
   }
   catch (err) {
+    console.log(err)
     return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
   }
 }
