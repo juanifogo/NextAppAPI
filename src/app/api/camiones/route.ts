@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const payload: camionPayload = await req.json()
 
-  if (!isValidCamion(payload)) {
+  if (!isValidCamion(payload, 'deny')) {
     let output = 'Formato incorrecto'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
