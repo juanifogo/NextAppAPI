@@ -1,13 +1,11 @@
 import { prisma } from '@/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { sensoresPayload } from '@/types'
-import { checkTag } from '@/utils'
-import { checkDuplicateDate } from '@/utils'
-import { isValidSensor } from '@/utils'
+import { checkUnique, isValidSensor } from '@/utils'
 import { Props } from '@/types'
 
 export async function GET(req: NextRequest, { params: { tag } }: Props) {
-  let exists = await checkTag(tag)
+  let exists: string = await checkUnique({tag: tag}, 'camiones')
   switch (exists) {
     case "Error":
       return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -43,7 +41,7 @@ export async function GET(req: NextRequest, { params: { tag } }: Props) {
 }
 
 export async function POST(req: Request, { params: { tag } }: Props) {
-  let exists = await checkTag(tag)
+  let exists: string = await checkUnique({tag: tag}, 'camiones')
   switch (exists) {
     case "Error":
       return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -67,15 +65,30 @@ export async function POST(req: Request, { params: { tag } }: Props) {
 
   payload.tiempoMedicion = payload.tiempoMedicion.trim()
 
-  if (new Date(Date.now()) < new Date(payload.tiempoMedicion)) {
+  if (payload.tiempoMedicion === '' || new Date(Date.now()) < new Date(payload.tiempoMedicion)) {
     let output = "Fecha invalida"
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
-  if (await checkDuplicateDate(tag, payload.tiempoMedicion)) {
-    let output = "Este camion ya tiene una medicion con esa fecha"
-    console.log(output)
-    return NextResponse.json({ mensaje: output }, { status: 400 })
+  const fields = {
+    AND: 
+    [
+      {idCamion: tag},
+      {tiempoMedicion: payload.tiempoMedicion}
+    ]
+  }
+  exists = await checkUnique(fields, 'sensores')
+  switch (exists) {
+    case "Not Found":
+      break
+
+    case "Error":
+      return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+    
+      default:
+      let output = "Este camion ya tiene una medicion con esa fecha"
+      console.log(output)
+      return NextResponse.json({ mensaje: output }, { status: 400 })
   }
   try {
     let result = await prisma.sensores.create({

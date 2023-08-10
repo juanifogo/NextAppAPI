@@ -39,12 +39,11 @@ export const filterObject = (obj: any, allowedKeys: Array<string>) => {
   return filteredObj
 }
 
-// todo: rewrite this function to be more readable and have the same functionality
 
 export const isValidCamion = (
   obj: any,
   acceptEmpty: 'permit' | 'deny'): obj is camionPayload => {
-  if (acceptEmpty === 'deny') {
+    if (acceptEmpty === 'deny') {
     if (
       (typeof obj.tag !== 'string') ||
       (typeof obj.modelo !== 'string') ||
@@ -62,7 +61,7 @@ export const isValidCamion = (
       ((typeof obj.tag !== 'string') && (typeof obj.tag !== 'undefined')) ||
       ((typeof obj.modelo !== 'string') && (typeof obj.modelo !== 'undefined')) ||
       ((typeof obj.capacidad !== 'number') && (typeof obj.capacidad !== 'undefined')) ||
-      ((typeof obj.compania !== 'string') && (typeof obj.comapnia !== 'undefined')) ||
+      ((typeof obj.compania !== 'string') && (typeof obj.compania !== 'undefined')) ||
       ((typeof obj.patente !== 'string') && (typeof obj.patente !== 'undefined')) ||
       ((typeof obj.patente === 'string') && (!isValidPatente(obj.patente)))
     ) {
@@ -70,7 +69,6 @@ export const isValidCamion = (
     }
     return true
   }
-
 }
 
 export const isValidSensor = (obj: any): obj is sensoresPayload => {
@@ -87,66 +85,25 @@ export const isValidSensor = (obj: any): obj is sensoresPayload => {
   return true
 }
 
-export const checkTag = async (tag: string) => {
+export const checkUnique = async (fields: any, table: 'sensores' | 'camiones') => {
+  let PrismaTable: any
+  if(table === 'sensores') {
+    PrismaTable = prisma.sensores
+  }
+  else {
+    PrismaTable = prisma.camiones
+  }  
+
   try {
-    const result = await prisma.camiones.findUnique({
-      where: {
-        tag: tag
-      }
+    const result = await PrismaTable.findFirst({
+      where: fields
     })
 
     if (!result) {
       return "Not Found"
     }
     else {
-      return result.id
-    }
-  }
-  catch (err) {
-    console.log(err)
-    return "Error"
-  }
-}
-
-export const checkDuplicatePatente = async (patente: string) => {
-  try {
-    const result = await prisma.camiones.findUnique({
-      where: {
-        patente: patente
-      }
-    })
-
-    if (!result) {
-      return "Not Found"
-    }
-    else {
-      return result.id
-    }
-  }
-  catch (err) {
-    console.log(err)
-    return "Error"
-  }
-}
-export const checkDuplicateDate = async (tag: string, tiempoMedicion: string) => {
-  try {
-    const result = await prisma.sensores.findFirst({
-      where: {
-        AND: [
-          {
-            idCamion: tag
-          },
-          {
-            tiempoMedicion: tiempoMedicion
-          }
-        ]
-      }
-    })
-    if (!result) {
-      return false
-    }
-    else {
-      return true
+      return result
     }
   }
   catch (err) {

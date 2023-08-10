@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db'
 import { camionPayload } from '@/types'
-import { isValidPatente } from '@/utils'
-import { isValidCamion } from '@/utils'
+import { isValidPatente, isValidCamion, trimObjectStr } from '@/utils'
 
 export async function GET() {
   try {
@@ -18,24 +17,21 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const payload: camionPayload = await req.json()
+  let payload: camionPayload = await req.json()
 
   if (!isValidCamion(payload, 'deny')) {
     let output = 'Formato incorrecto'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
-
-  payload.tag = payload.tag.trim().toLowerCase()
-  payload.patente = payload.patente.trim()
-  payload.modelo = payload.modelo.trim()
-  payload.compania = payload.compania.trim()
-
-  if ([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')) {
+  let containsEmpty: boolean
+  [payload, containsEmpty] = trimObjectStr(payload)
+  if (containsEmpty) {
     let output = 'Formato incorrecto'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
+  payload.tag = payload.tag.toLowerCase()
   if (!isValidPatente(payload.patente)) {
     let output = 'Patente ivalida'
     console.log(output)

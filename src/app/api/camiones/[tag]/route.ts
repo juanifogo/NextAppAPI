@@ -1,10 +1,7 @@
 import { prisma } from '@/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { camionPayload, Props } from '@/types'
-import {
-  checkTag, trimObjectStr, isValidCamion,
-  checkDuplicatePatente, filterObject
-} from '@/utils'
+import { checkUnique, trimObjectStr, isValidCamion, filterObject } from '@/utils'
 
 export async function GET(req: Request, { params: { tag } }: Props) {
   try {
@@ -29,8 +26,8 @@ export async function GET(req: Request, { params: { tag } }: Props) {
 
 export async function PUT(req: Request, { params: { tag } }: Props) {
   let id: string
-
-  let res = await checkTag(tag)
+  tag = tag.toLowerCase()
+  let res: string | camionPayload = await checkUnique({tag: tag}, 'camiones')
   switch (res) {
     case "Error":
       return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -41,18 +38,18 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
       return NextResponse.json({ mensaje: output }, { status: 404 })
 
     default:
-      id = res
       break
   }
-
-  let payload: camionPayload = await req.json()
+  const keys = ["tag", "patente", "modelo", "compania", "capacidad"]
+  const body = await req.json()
+  let payload: camionPayload = filterObject(body, keys)
   if (!isValidCamion(payload, 'deny')) {
     let output = 'Formato incorrecto'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
 
-  let containsEmpty: string
+  let containsEmpty: boolean
   [payload, containsEmpty] = trimObjectStr(payload)
 
   if (containsEmpty) {
@@ -60,20 +57,15 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
-  res = await checkTag(payload.tag)
-  switch (res) {
-    case "Error":
-      return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
-
-    case "Not Found":
-      break
-
-    default:
-      let output = "Ya hay otro camion con el tag correspondiente"
-      console.log(output)
-      return NextResponse.json({ mensaje: output }, { status: 404 })
+  payload.tag = payload.tag.toLowerCase()
+  const fields = {
+    OR: 
+    [
+      {tag: payload.tag},
+      {patente: payload.patente}
+    ]
   }
-  res = await checkDuplicatePatente(payload.patente)
+  res = await checkUnique(fields, 'camiones')
   switch (res) {
     case "Error":
       return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -82,9 +74,13 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
       break
 
     default:
-      let output = "Ya hay otro camion con la patente correspondiente"
-      console.log(output)
-      return NextResponse.json({ mensaje: output }, { status: 404 })
+      res = res as camionPayload
+      if(res.tag !== payload.tag || res.patente !== payload.patente) {
+        let output = "Ya hay otro camion con el tag o patente correspondiente"
+        console.log(output)
+        return NextResponse.json({ mensaje: output }, { status: 404 })
+      }
+      break
   }
 
   try {
@@ -92,17 +88,12 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
       where: {
         tag: tag
       },
-      data: {
-        tag: payload.tag,
-        patente: payload.patente,
-        modelo: payload.modelo,
-        capacidad: payload.capacidad,
-        compania: payload.compania
-      }
+      data: payload
     })
-    let output = `Patente: ${payload.patente}%, modelo: ${payload.modelo}°C, Capacidad:${payload.capacidad} Compania: ${payload.compania}, ID: ${id}`
+    const jsonStr = JSON.stringify(payload, null, 2)
+    const output = "Valores actualizados:\n" + jsonStr
     console.log(output)
-    return NextResponse.json({ ID: id }, { status: 200 })
+    return NextResponse.json({ actualizado: payload }, { status: 200 })
   }
 
   catch (err) {
@@ -112,7 +103,8 @@ export async function PUT(req: Request, { params: { tag } }: Props) {
 }
 
 export async function PATCH(req: NextRequest, { params: { tag } }: Props) {
-  let res = await checkTag(tag)
+  tag = tag.toLowerCase()
+  let res: string | camionPayload = await checkUnique({tag: tag}, 'camiones')
   switch (res) {
     case "Error":
       return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -123,14 +115,13 @@ export async function PATCH(req: NextRequest, { params: { tag } }: Props) {
       return NextResponse.json({ mensaje: output }, { status: 404 })
 
     default:
-
       break
   }
   const keys = ["tag", "patente", "modelo", "compania", "capacidad"]
   const body = await req.json()
   let payload: camionPayload = filterObject(body, keys)
   if (!isValidCamion(payload, 'permit')) {
-    let output = 'Formato incorrecto 1'
+    let output = 'Formato incorrecto'
     console.log(output)
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
@@ -142,7 +133,8 @@ export async function PATCH(req: NextRequest, { params: { tag } }: Props) {
     return NextResponse.json({ mensaje: output }, { status: 400 })
   }
   if (typeof payload.tag !== 'undefined') {
-    res = await checkTag(payload.tag)
+    payload.tag = payload.tag.toLowerCase()
+    res = await checkUnique({tag: payload.tag}, 'camiones')
     switch (res) {
       case "Error":
         return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -151,13 +143,18 @@ export async function PATCH(req: NextRequest, { params: { tag } }: Props) {
         break
 
       default:
-        let output = "Ya hay otro camion con el tag correspondiente"
-        console.log(output)
-        return NextResponse.json({ mensaje: output }, { status: 404 })
+        res = res as camionPayload
+        if(res.tag !== payload.tag) {
+          let output = "Ya hay otro camion con el tag correspondiente"
+          console.log(output)
+          return NextResponse.json({ mensaje: output }, { status: 404 })
+        }
+        break
     }
   }
   if (typeof payload.patente !== 'undefined') {
-    res = await checkDuplicatePatente(payload.patente)
+    res = await checkUnique({patente: payload.patente}, 'camiones')
+    console.log(res, tag)
     switch (res) {
       case "Error":
         return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -166,9 +163,13 @@ export async function PATCH(req: NextRequest, { params: { tag } }: Props) {
         break
 
       default:
-        let output = "Ya hay otro camion con la patente correspondiente"
-        console.log(output)
-        return NextResponse.json({ mensaje: output }, { status: 404 })
+        res = res as camionPayload
+        if(res.tag !== tag) {
+          let output = "Ya hay otro camion con la patente correspondiente"
+          console.log(output)
+          return NextResponse.json({ mensaje: output }, { status: 404 })
+        }
+        break
     }
   }
   try {
@@ -191,7 +192,7 @@ export async function PATCH(req: NextRequest, { params: { tag } }: Props) {
 
 export async function DELETE(req: NextRequest, { params: { tag } }: Props) {
   let id: string
-  let res = await checkTag(tag)
+  let res: string | camionPayload = await checkUnique({tag: tag}, 'camiones')
   switch (res) {
     case "Error":
       return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
@@ -202,7 +203,8 @@ export async function DELETE(req: NextRequest, { params: { tag } }: Props) {
       return NextResponse.json({ mensaje: output }, { status: 404 })
 
     default:
-      id = res
+      res = res as camionPayload
+      id = res.id
       break
   }
   try {

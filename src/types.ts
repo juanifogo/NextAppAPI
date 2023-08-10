@@ -1,4 +1,5 @@
 export type camionPayload = {
+    id: string,
     tag: string,
     patente: string,
     modelo: string,
