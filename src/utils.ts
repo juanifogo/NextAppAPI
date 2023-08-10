@@ -1,7 +1,10 @@
-import { camionPayload } from './types'
-import { sensoresPayload } from './types'
+import {
+  camionPayload, sensoresPayload,
+  ZodCamionPayload, ZodSensoresPayload
+} from './types'
 import { prisma } from '@/db'
 import moment from 'moment'
+import { z } from 'zod'
 
 export const isValidISO8601 = (input: string): boolean => {
   return moment(input.trim(), moment.ISO_8601, true).isValid()
@@ -39,36 +42,41 @@ export const filterObject = (obj: any, allowedKeys: Array<string>) => {
   return filteredObj
 }
 
-
 export const isValidCamion = (
   obj: any,
   acceptEmpty: 'permit' | 'deny'): obj is camionPayload => {
-    if (acceptEmpty === 'deny') {
-    if (
-      (typeof obj.tag !== 'string') ||
-      (typeof obj.modelo !== 'string') ||
-      (typeof obj.capacidad !== 'number') ||
-      (typeof obj.compania !== 'string') ||
-      (typeof obj.patente !== 'string') ||
-      (!isValidPatente(obj.patente))
-    ) {
-      return false
-    }
-    return true
+  if (acceptEmpty === 'deny') {
+    return
   }
   else {
-    if (
-      ((typeof obj.tag !== 'string') && (typeof obj.tag !== 'undefined')) ||
-      ((typeof obj.modelo !== 'string') && (typeof obj.modelo !== 'undefined')) ||
-      ((typeof obj.capacidad !== 'number') && (typeof obj.capacidad !== 'undefined')) ||
-      ((typeof obj.compania !== 'string') && (typeof obj.compania !== 'undefined')) ||
-      ((typeof obj.patente !== 'string') && (typeof obj.patente !== 'undefined')) ||
-      ((typeof obj.patente === 'string') && (!isValidPatente(obj.patente)))
-    ) {
-      return false
-    }
-    return true
+
   }
+  //   if (acceptEmpty === 'deny') {
+  //   if (
+  //     (typeof obj.tag !== 'string') ||
+  //     (typeof obj.modelo !== 'string') ||
+  //     (typeof obj.capacidad !== 'number') ||
+  //     (typeof obj.compania !== 'string') ||
+  //     (typeof obj.patente !== 'string') ||
+  //     (!isValidPatente(obj.patente))
+  //   ) {
+  //     return false
+  //   }
+  //   return true
+  // }
+  // else {
+  //   if (
+  //     ((typeof obj.tag !== 'string') && (typeof obj.tag !== 'undefined')) ||
+  //     ((typeof obj.modelo !== 'string') && (typeof obj.modelo !== 'undefined')) ||
+  //     ((typeof obj.capacidad !== 'number') && (typeof obj.capacidad !== 'undefined')) ||
+  //     ((typeof obj.compania !== 'string') && (typeof obj.compania !== 'undefined')) ||
+  //     ((typeof obj.patente !== 'string') && (typeof obj.patente !== 'undefined')) ||
+  //     ((typeof obj.patente === 'string') && (!isValidPatente(obj.patente)))
+  //   ) {
+  //     return false
+  //   }
+  //   return true
+  // }
 }
 
 export const isValidSensor = (obj: any): obj is sensoresPayload => {
@@ -87,12 +95,12 @@ export const isValidSensor = (obj: any): obj is sensoresPayload => {
 
 export const checkUnique = async (fields: any, table: 'sensores' | 'camiones') => {
   let PrismaTable: any
-  if(table === 'sensores') {
+  if (table === 'sensores') {
     PrismaTable = prisma.sensores
   }
   else {
     PrismaTable = prisma.camiones
-  }  
+  }
 
   try {
     const result = await PrismaTable.findFirst({
