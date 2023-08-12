@@ -1,6 +1,5 @@
 {
   "name": "next13test",
-  "type": "module",
   "description": "A Next.js REST API",
   "version": "0.1.0",
   "private": false,
