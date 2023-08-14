@@ -1,91 +1,28 @@
-import { prisma } from '@/db'
-import { NextResponse } from 'next/server'
-import { checkTag } from '@/utils'
-import { camionPayload } from '@/types'
-import { isValidPatente } from '@/utils'
-import { isValidCamion } from '@/utils'
-import { Props } from '@/types'
+import { NextRequest, NextResponse } from "next/server"
+import { Props } from "@/types"
+import { getCamion, updateCamion, deleteCamion } from "@/controllers"
 
 export async function GET(req: Request, { params: { tag } }: Props) {
-  try {
-    const result = await prisma.camiones.findUnique({
-      where: {
-        tag: tag
-      }
-    })
-    let output = `GET a /api/camiones/${tag}`
-    console.log(output)
-    if (result) {
-      return NextResponse.json(result, { status: 200 })
-    }
-    output = "No se encontro el camion con el tag correspondiente"
-    return NextResponse.json({ mensaje: output }, { status: 404 })
-  }
-  catch (err) {
-    return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
-  }
+  const [output, code]: any = await getCamion(tag)
+  const body = code === 200 ? output : { mensaje: output }
+  return NextResponse.json(body, { status: code })
 }
 
 export async function PUT(req: Request, { params: { tag } }: Props) {
-  let id: string
+  const reqBody = await req.json()
+  const [output, code]: any = await updateCamion(reqBody, tag, "PUT")
+  const body = code === 200 ? output : { mensaje: output }
+  return NextResponse.json(body, { status: code })
+}
 
-  let res = await checkTag(tag)
-  switch (res) {
-    case "Error":
-      return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
+export async function PATCH(req: NextRequest, { params: { tag } }: Props) {
+  const reqBody = await req.json()
+  const [output, code]: any = await updateCamion(reqBody, tag, "PATCH")
+  const body = code === 200 ? output : { mensaje: output }
+  return NextResponse.json(body, { status: code })
+}
 
-    case "Not Found":
-      let output = "No se encontro un camion con el tag correspondiente"
-      console.log(output)
-      return NextResponse.json({ mensaje: output }, { status: 404 })
-
-    default:
-      id = res
-      break
-  }
-
-  const payload: camionPayload = await req.json()
-  if (!isValidCamion(payload)) {
-    let output = 'Formato incorrecto'
-    console.log(output)
-    return NextResponse.json({ mensaje: output }, { status: 400 })
-  }
-
-  payload.tag = payload.tag.trim()
-  payload.patente = payload.patente.trim()
-  payload.modelo = payload.modelo.trim()
-  payload.compania = payload.compania.trim()
-
-  if([payload.tag, payload.patente, payload.modelo, payload.compania].includes('')){
-    let output = 'Formato incorrecto'
-    console.log(output)
-    return NextResponse.json({ mensaje: output }, { status: 400 })
-  }      
-  if(!isValidPatente(payload.patente)){
-    let output = 'Patente ivalida'
-    console.log(output)
-    return NextResponse.json({ mensaje: output }, { status: 400 })
-  }
-
-  try {
-    await prisma.camiones.update({
-      where: {
-        tag: tag
-      },
-      data: {
-        tag: payload.tag,
-        patente: payload.patente,
-        modelo: payload.modelo,
-        capacidad: payload.capacidad,
-        compania: payload.compania
-      }
-    })
-    let output = `Patente: ${payload.patente}%, modelo: ${payload.modelo}°C, Capacidad:${payload.capacidad} Compania: ${payload.compania}, ID: ${id}`
-    console.log(output)
-    return NextResponse.json({ ID: id }, { status: 200 })
-  }
-
-  catch (err) {
-    return NextResponse.json({ mensaje: "Error del servidor" }, { status: 500 })
-  }
+export async function DELETE(req: NextRequest, { params: { tag } }: Props) {
+  const [output, code]: any = await deleteCamion(tag)
+  return NextResponse.json({ mensaje: output }, { status: code })
 }

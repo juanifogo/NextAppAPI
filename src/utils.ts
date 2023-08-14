@@ -1,88 +1,36 @@
-import { camionPayload } from './types'
-import { sensoresPayload } from './types'
-import { prisma } from '@/db'
-import moment from 'moment'
+import { ZodCamionPayload, ZodSensoresPayload } from "./types"
+import { Prisma } from "@prisma/client"
 
-export const isValidISO8601 = (input: string): boolean => {
-    return moment(input.trim(), moment.ISO_8601, true).isValid()
-}
-  
-export const isValidPatente = (input: any): boolean => {
-    const regex = /^[A-Z]{3}-[0-9]{3}$/
-    return regex.test(input)
+export function isValidCamion(obj: any, acceptEmpty: "permit" | "deny") {
+  if (acceptEmpty === "deny") {
+    return ZodCamionPayload.safeParse(obj)
+  } else {
+    return ZodCamionPayload.partial().safeParse(obj)
+  }
 }
 
-export const isValidCamion = (obj: any): obj is camionPayload => {
-    if (
-      (typeof obj.tag !== 'string') ||
-      (typeof obj.modelo !== 'string') ||
-      (typeof obj.capacidad !== 'number') ||
-      (typeof obj.compania !== 'string') ||
-      (typeof obj.patente !== 'string')
-    ) {
-      return false
-    }
-    return true
+export async function isValidSensor(obj: any) {
+  return await ZodSensoresPayload.safeParseAsync(obj)
 }
 
-export const isValidSensor = (obj: any): obj is sensoresPayload => {
-    if (
-      (typeof obj.humedad !== 'number') ||
-      (typeof obj.temperatura !== 'number') ||
-      (typeof obj.latitud !== 'number') ||
-      (typeof obj.longitud !== 'number') ||
-      (typeof obj.tiempoMedicion !== 'string') ||
-      (!isValidISO8601(obj.tiempoMedicion))
-    ) {
-      return false
-    }
-    return true
-}
-  
-export const checkTag = async (tag: string) => {
-    try {
-      const result = await prisma.camiones.findUnique({
-        where: {
-          tag: tag
-        }
-      })
-  
-      if (!result) {
-        return "Not Found"
-      }
-      else {
-        return result.id
-      }
-    }
-    catch (err) {
-      return "Error"
-    }
-}
+export function checkPrismaError(err: any): [string, number] {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    let output: string
+    switch (err.code) {
+      case "P2025":
+        output = "No se encontro un camion con el tag correspondiente"
+        console.log(output)
+        return [output, 404]
 
-export const checkDuplicateDate = async (tag: string, tiempoMedicion: string) => {
-    try {
-      const result = await prisma.sensores.findFirst({
-        where: {
-          AND: [
-            {
-              idCamion: tag
-            },
-            {
-              tiempoMedicion: tiempoMedicion
-            }
-          ]
-        }
-      })
-      if (!result) {
-        return false
-      }
-      else {
-        return true
-      }
+      case "P2002":
+        output = "Datos duplicados"
+        console.log(err, output)
+        return [output, 400]
+
+      default:
+        break
     }
-    catch(err){
-      console.log(err)
-      return "Error"
-    }
+  }
+  console.log(err)
+  return ["Error del servidor", 500]
 }
-  

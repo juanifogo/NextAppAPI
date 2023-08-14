@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server"
 
 export async function GET() {
-    return NextResponse.json({ mensage: 'Bienvenido a la API' })
+  return NextResponse.json({ mensage: "Bienvenido a la API" })
 }
