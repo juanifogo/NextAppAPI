@@ -24,6 +24,7 @@ export const ZodSensoresPayload = z
     latitud: z.number(),
     longitud: z.number(),
     tiempoMedicion: z.string().trim().nonempty().datetime(),
+    peso: z.number()
   })
   .refine(checkTime, checkTimeParams)
 

@@ -24,6 +24,7 @@ model Sensores {
   humedad        Float     @db.Float
   latitud        Float     @db.Float
   longitud       Float     @db.Float
+  peso           Float     @default(0) @db.Float
   tiempoMedicion DateTime  @db.Timestamp()
   tiempoDB       DateTime  @default(now())
   idCamion       String?
